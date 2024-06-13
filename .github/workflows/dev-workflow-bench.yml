@@ -1,0 +1,34 @@
+name: Developer workflow performance
+
+on:
+  push:
+    branches: ['canary']
+
+jobs:
+  run:
+    name: Run benchmarks
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.35.0-focal
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - '--turbopack=false'
+          - '--turbopack=true'
+        selector:
+          - '--scenario=heavy-npm-deps --page=homepage'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Playwright
+        run: npx playwright@1.39.0 install
+
+      - name: Run benchmarks
+        run: pnpm --filter devlow-benches run dev-workflow-bench --datadog=ubuntu-latest-16-core ${{ matrix.mode }} ${{ matrix.selector }}
+        env:
+          # DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          BROWSER_OUTPUT: 1
+          SHELL_OUTPUT: 1
